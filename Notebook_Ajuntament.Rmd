@@ -1,0 +1,97 @@
+---
+title: "L'Open Data de l'ajuntament de Barcelona"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+  word_document: default
+---
+
+Dins de l'Open Data de l'Ajuntament de Barcelona trobem diferents camps: . Per el nostre anàlisis ens centrarem bàsicament en el d'Habitatge però també treurem informació que pot ser rellevant en altres àrees. 
+
+A continuació farem una breu mostra d'alguns dels datasets que ens han semblant més significatius. 
+
+####Renta per Barri(2015)
+
+```{r, fig.width=10, fig.height=7}
+library(ggplot2)
+library(readxl)
+library(wesanderson)
+renda_sup_hab_pers <- read_excel("~/Desktop/IRENE8WIRES/Ajuntament/Renda/renda_sup_hab_pers.xlsx",  col_types = c("numeric", "numeric", "text", "numeric", "numeric", "numeric","numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"), na='..')
+ggplot(renda_sup_hab_pers, aes(x=reorder(renda_sup_hab_pers$n_barri, renda_sup_hab_pers$`renda RFD`), y = renda_sup_hab_pers$`renda RFD`, fill=renda_sup_hab_pers$`renda RFD`)) +  geom_bar(stat = "identity", width = 0.8, position = position_dodge(width=0.5)) + scale_colour_gradientn(colours=rainbow(4))+ guides(fill = guide_legend(title = "index RFD")) + theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1, size=6)) + xlab("Barris") +ylab("Index RFD")
+```
+També ho podem visualitzar sobre el mapa:
+
+<p align="center">
+<img src="RENTA.png" width="500">
+</p>
+
+\begin{center}
+\includegraphics[width=120mm]{RENTA.png}
+\end{center}
+
+####Renta per Barri: evolució durant 5 anys
+
+Si premem cmnd+alt+I:
+El seguent boxplot ens dóna una idea de l'evolució de la renda des del 2008 dins del barris de Barcelona.
+```{r}
+rendafama2008_2012 <- read_excel("~/Desktop/IRENE8WIRES/Ajuntament/Renda/rendafama2008_2012.xls")
+boxplot(rendafama2008_2012$any2008, rendafama2008_2012$any2010, rendafama2008_2012$any2012,renda_sup_hab_pers$`renda RFD`, names=c("2008","2010","2012","2014"), main=("Distribucio Barris segons Renta 2008-2014"))
+```
+```{r}
+summary(renda_sup_hab_pers$`renda RFD`)
+```
+
+Observem:
+
+<ol>
+  <li>Tenim 6 barris considerats outlayers:Pedralbes, les Tres Torres, Sarrià, Sant Gervasi - Galvany, Sant Gervasi - La Bonanova i Diagonal Mar</li>
+  <li>Hi ha una clara tendencia lineal ascendent de Pedralbes i les Tres Torres a incrementar la diferència de renta amb el temps, enriquiment d'un sector de la població</li>
+  <li>La resta no es separen excessivament del bloc</li>
+  <li>La mediana ens mostra com la crisi afecta fins el 2012 i en el 2014 s'intueix una petita recuperació econòmica, però no de tots els barris ja que</li>
+  <li>La barra inferior cada vegada és més extensa, i.e. hi ha un tant per cent de barris que cada vegada són més pobres</li>
+  <li>En global, és un clar exemple de la petita recuperació econòmica i a la vegada l'empobriment d'alguns dels barris</li>
+  <li>La renta mitja a Barcelona és de 100, per tant més del 50% de barris hi estan per sota</li>
+  <li>Aquesta renta mitja està calculada tenint en conte els outlayers per tant no és del tot significativa</li>
+</ol>
+
+Per tant anem a veure com queda la nostra ciutat si deixem de banda els outlayers. 
+
+```{r}
+renda_sup_hab_pers_reduida <- renda_sup_hab_pers[-c(21,24,23,26,25,69),]
+Totalhabitants <- sum(renda_sup_hab_pers$n_habitants)
+Mitjana <- sum(renda_sup_hab_pers$`renda RFD`*renda_sup_hab_pers$n_habitants/Totalhabitants)
+Totalhabitantsred <- sum(renda_sup_hab_pers_reduida$n_habitants)
+Mitjanared <- sum(renda_sup_hab_pers_reduida$`renda RFD`*renda_sup_hab_pers_reduida$n_habitants/Totalhabitantsred)
+```
+
+La mitjana en aquest cas és de: `r round(Mitjanared,2)` i el boxplot pren la forma:
+
+```{r}
+ggplot(renda_sup_hab_pers_reduida, aes(x = '',y = renda_sup_hab_pers_reduida$`renda RFD`)) + geom_boxplot(fill="blue") + geom_hline(yintercept = Mitjanared) + xlab("2014") +ylab("Index RFD")
+```
+
+<ol>
+  <li> Els valors segueixen sent en relació a la mitjana 100, feta amb tots el barris però ara tenim el valor de la mitja en relació aquets 67 barris  </li>
+  <li> Què ens diu? la nova mitjana ens dóna una idea de la distrubicó dels barris al voltant d'ella</li>
+  <li> No tots els barris estan per sota en aquest cas!</li>
+  <li> Els barris més rics tenien una influència molt significativa en e càlcul de l'anterior mitjana </li>
+  <li> Veiem que això no passa amb els barris amb menys renta, és a dir no hi ha cap barri significativament amb renta més baixa perquè no l'haguem de tenir en compte </li>
+  <li> Per poder comparar aquest resultat amb el dels altres anys caldria reescalar totes les noves mitjanes fina 100 per exemple, sinó no tindria cap mena de sentit.</li>
+</ol>
+
+Anem a visualitzar aquesta transformació i així poder veure com han evlocuionat la resta de barris més concretament.
+
+```{r}
+rendafama2008_2012red <- rendafama2008_2012[-c(21,24,23,26,25,69),]
+Total2008_2012red <- sum(rendafama2008_2012red$POBLACIORESIDENT)
+Mitjana2008 <- sum(rendafama2008_2012red$any2008*rendafama2008_2012red$POBLACIORESIDENT/Total2008_2012red)
+Mitjana2010 <- sum(rendafama2008_2012red$any2010*rendafama2008_2012red$POBLACIORESIDENT/Total2008_2012red)
+Mitjana2012 <- sum(rendafama2008_2012red$any2012*rendafama2008_2012red$POBLACIORESIDENT/Total2008_2012red)
+rendafama2008_2012red$any2008 <- rendafama2008_2012red$any2008*Mitjana2008/100
+rendafama2008_2012red$any2010 <- rendafama2008_2012red$any2010*Mitjana2010/100
+rendafama2008_2012red$any2012 <- rendafama2008_2012red$any2012*Mitjana2012/100
+boxplot(rendafama2008_2012red$any2008, rendafama2008_2012red$any2010, rendafama2008_2012red$any2012, names=c("2008","2010","2012"), main=("Distribucio Barris segons Renta Sense Outlayers 2008-2012"))
+```
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
